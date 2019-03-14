@@ -5,3 +5,139 @@ obj_pose-laser-radar-synthetic-input.txt
 - For a row containing lidar data, the columns are: sensor_type, x_measured, y_measured, timestamp, x_groundtruth, y_groundtruth, vx_groundtruth, vy_groundtruth, yaw_groundtruth, yawrate_groundtruth.
 
 Whereas radar has three measurements (rho, phi, rhodot), lidar has two measurements (x, y).
+
+We already discussed how main.cpp reads in the sensor data. Recall that main.cpp reads in the sensor data line by line from the client and stores the data into a measurement object that it passes to the Kalman filter for processing. Also a ground truth list and an estimation list are used for tracking RMSE.
+
+main.cpp:
+
+INPUT: values provided by the simulator to the c++ program
+
+["sensor_measurement"] => the measurement that the simulator observed (either lidar or radar)
+
+
+OUTPUT: values provided by the c++ program to the simulator
+
+["estimate_x"] <= kalman filter estimated position x
+["estimate_y"] <= kalman filter estimated position y
+["rmse_x"]
+["rmse_y"]
+["rmse_vx"]
+["rmse_vy"]
+
+
+In FusionEKF need to:
+
+initialize variables and matrices (x, F, H_laser, H_jacobian, P, etc.)
+initialize the Kalman filter position vector with the first sensor measurements
+modify the F and Q matrices prior to the prediction step based on the elapsed time between measurements
+call the update step for either the lidar or radar sensor measurement. Because the update step for lidar and radar are slightly different, there are different functions for updating lidar and radar.
+
+
+
+Tips and Tricks
+
+1- Review the Previous Lessons
+Review the previous lessons! Andrei, Dominik and co. have given you everything you need. In fact, you've built most of an Extended Kalman Filter already! Take a look at the programming assignments and apply the techniques you used to this project.
+2- No Need to Tune Parameters
+The R matrix values and Q noise values are provided for you. There is no need to tune these parameters for this project.
+3- Initializing the State Vector
+You'll need to initialize the state vector with the first sensor measurement.
+Although radar gives velocity data in the form of the range rate \dot{\rho}, a radar measurement does not contain enough information to determine the state variable velocities v_x ​	and v_y. You can, however, use the radar measurements \rhoρ and \phiϕ to initialize the state variable locations p_x and p_y.
+4- Calculating y = z - H * x'
+For lidar measurements, the error equation is y = z - H * x'. For radar measurements, the functions that map the x vector [px, py, vx, vy] to polar coordinates are non-linear. Instead of using H to calculate y = z - H * x', for radar measurements you'll have to use the equations that map from cartesian to polar coordinates: y = z - h(x').
+5- Normalizing Angles
+In C++, atan2() returns values between -pi and pi. When calculating phi in y = z - h(x) for radar measurements, the resulting angle phi in the y vector should be adjusted so that it is between -pi and pi. The Kalman filter is expecting small angle values between the range -pi and pi. HINT: when working in radians, you can add 2\pi2π or subtract 2\pi2π until the angle is within the desired range.
+6- Avoid Divide by Zero throughout the Implementation
+Before and while calculating the Jacobian matrix Hj, make sure your code avoids dividing by zero. For example, both the x and y values might be zero or px*px + py*py might be close to zero. What should be done in those cases?
+7- Test Your Implementation
+Test! We're giving you the ability to analyze your output data and calculate RMSE. As you make changes, keep testing your algorithm! If you are getting stuck, add print statements to pinpoint any issues. But please remove extra print statements before turning in the code.
+
+Installation:
+
+Navigate to the repository CarND-Extended-Kalman-Filter-Project using the file and directory menu on the left.
+Run ./install-ubuntu.sh in the terminal window to make sure the necessary dependencies are installed (you may need to run chmod u+x install-ubuntu.sh to make the file executable).
+
+The main program can be built and run by doing the following from the project top directory:
+
+mkdir build && cd build
+cmake .. && make
+./ExtendedKF
+
+Click on the "Simulator" button in the bottom of the Udacity workspace, which will open a new virtual desktop. You should see a "Simulator" link on the virtual desktop. Double-click the "Simulator" link in that desktop to start the simulator.
+
+Important: You need to open a terminal before attempting to run the simulator.
+
+Extended Kalman Filter Simulator
+In the main menu screen select Project 1/2 EKF and UKF.
+Once the scene is loaded you can hit the START button to observe how the object moves and how measurement markers are positioned in the data set. Also for more experimentation, "Data set 2" is included which is a reversed version of "Data set 1", also the second data set starts with a radar measurement where the first data set starts with a lidar measurement. At any time you can press the PAUSE button, to pause the scene or hit the RESTART button to reset the scene. Also, the ARROW KEYS can be used to move the camera around, and the top left ZOOM IN/OUT buttons can be used to focus the camera. Pressing the ESCAPE KEY returns to the simulator main menu.
+
+
+Missing simulator icon - the simulator icon may fail to appear after a short wait within the Linux Desktop. If this is the case, click on the Terminal icon in the Desktop, and the simulator icon will typically appear. Please note that you still will use the actual Terminal within the primary workspace, and not the one in the Desktop.
+
+
+Here is the main protocol that main.cpp uses for uWebSocketIO in communicating with the simulator.
+
+INPUT: values provided by the simulator to the c++ program
+
+["sensor_measurement"] => the measurement that the simulator observed (either lidar or radar)
+
+OUTPUT: values provided by the c++ program to the simulator
+
+["estimate_x"] <= kalman filter estimated position x ["estimate_y"] <= kalman filter estimated position y ["rmse_x"] ["rmse_y"] ["rmse_vx"] ["rmse_vy"]
+
+Once the scene is loaded you can hit the START button to observe how the object moves and how measurement markers are positioned in the data set. Also for more experimentation, "Data set 2" is included which is a reversed version of "Data set 1", also the second data set starts with a radar measurement where the first data set starts with a lidar measurement. At any time you can press the PAUSE button, to pause the scene or hit the RESTART button to reset the scene. Also, the ARROW KEYS can be used to move the camera around, and the top left ZOOM IN/OUT buttons can be used to focus the camera. Pressing the ESCAPE KEY returns to the simulator main menu.
+
+https://www.howtogeek.com/249966/how-to-install-and-use-the-linux-bash-shell-on-windows-10/
+
+Docker
+If you don't want to use Bash on Windows, or you don't have Windows 10, then you can use a virtual machine to run a Docker image that already contains all the project dependencies.
+
+First install Docker Toolbox for Windows.
+
+Next, launch the Docker Quickstart Terminal. The default Linux virtual environment should load up. You can test that Docker is setup correctly by running docker version and docker ps.
+
+You can enter a Docker image that has all the project dependencies by running:
+
+docker run -it -p 4567:4567 -v 'pwd':/work udacity/controls_kit:latest
+
+Once inside Docker you can clone over the GitHub project repositories and run the project from there.
+
+https://docs.docker.com/toolbox/toolbox_install_windows/
+
+Port forwarding is required when running code on VM and simulator on host
+For security reasons, the VM does not automatically open port forwarding, so you need to manually enable port 4567. This is needed for the C++ program to successfully connect to the host simulator.
+
+Port Forwarding Instructions
+First open up Oracle VM VirtualBox
+Click on the default session and select settings.
+Click on Network, and then Advanced.
+Click on Port Forwarding
+Click on the green plus, adds new port forwarding rule.
+Add a rule that assigns 4567 as both the host port and guest Port, as in the screenshot.
+
+
+sudo apt-get update
+sudo apt-get install git
+sudo apt-get install cmake
+sudo apt-get install openssl
+sudo apt-get install libssl-dev
+git clone https://github.com/udacity/CarND-Kidnapped-Vehicle-Project or whatever CarND project
+sudo rm /usr/lib/libuWS.so
+navigate to CarND-Kidnapped-Vehicle-Project/
+./install-ubuntu.sh
+at the top level of the project repository mkdir build && cd build
+from /build cmake .. && make
+Launch the simulator from Windows and execute the run command for the project, for example ./ExtendedKF or ./particle_filter (Make sure you also run the simulator) If you see this message, it is working Listening to port 4567 Connected!!!
+
+
+Cannot find the package libuv1-dev
+To install the package run sudo apt-get install libuv1.dev
+If you still cannot install the package run the following to get the package and install it:
+sudo add-apt-repository ppa:acooks/libwebsockets6
+sudo apt-get update
+sudo apt-get install libuv1.dev
+
+Installing cmake requires g++ compiler. Install a g++ version 4.9 or greater. Here are the steps:
+sudo add-apt-repository ppa:ubuntu-toolchain-r/test
+sudo apt-get update
+sudo apt-get install g++-4.9

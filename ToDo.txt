@@ -1,0 +1,5 @@
+1- Set up visual code environment to compile it and debug it.
+OK- Make sure we receive sensor simulator data from the simulator.
+3- Process Lidar data and make sure that it works.
+4- Process Radar data and make sure that it works and that we meet the RSME error of the Rubik.
+5- Write the write up report.
