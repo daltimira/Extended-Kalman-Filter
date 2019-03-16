@@ -77,3 +77,21 @@ MatrixXd Tools::CalculateJacobian(const VectorXd& x_state) {
   return Hj;
 }
 
+Eigen::VectorXd Calculate_h(const Eigen::VectorXd& x_state)
+{
+  VectorXd h(3);
+  h << 0,0,0;
+
+  float px = x_state(0);
+  float py = x_state(1);
+  float vx = x_state(2);
+  float vy = x_state(3);
+
+  float rho = 0.0;
+  float phi = 0.0;
+  float rho_dot = 0.0;
+
+  rho = sqrt(px*px+py*py);
+  // Returns the principal value of the arc tangent of y/x, expressed in radians
+  phi = atan2(py, px);
+}
