@@ -10,24 +10,18 @@ Tools::Tools() {}
 
 Tools::~Tools() {}
 
-VectorXd Tools::CalculateRMSE(const vector<VectorXd> &estimations,
-    const vector<VectorXd> &ground_truth) {
+VectorXd Tools::CalculateRMSE(const vector<VectorXd> &estimations, const vector<VectorXd> &ground_truth) {
 
   VectorXd rmse(4);
   rmse << 0,0,0,0;
 
-  // check the validity of the following inputs:
-  //  * the estimation vector size should not be zero
-  //  * the estimation vector size should equal ground truth vector size
-  if (estimations.size() != ground_truth.size()
-      || estimations.size() == 0) {
-    cout << "Invalid estimation or ground_truth data" << endl;
+  // check that we can calculate the rmse
+  if (estimations.size() != ground_truth.size() || estimations.size() == 0) {
+    cout << "Error in calculating the RMSE." << endl;
     return rmse;
   }
 
-  // accumulate squared residuals
-  for (unsigned int i=0; i < estimations.size(); ++i) {
-
+  for (int i=0; i < estimations.size(); i++) {
     VectorXd residual = estimations[i] - ground_truth[i];
 
     // coefficient-wise multiplication
@@ -52,46 +46,29 @@ MatrixXd Tools::CalculateJacobian(const VectorXd& x_state) {
    */
 
   MatrixXd Hj(3,4);
-  // recover state parameters
+  double Tolerance = 0.0001; // Tolerance to determine if a value is enough close to zero to be considered as zero
+
+  // state parameters
   float px = x_state(0);
   float py = x_state(1);
   float vx = x_state(2);
   float vy = x_state(3);
 
-  // pre-compute a set of terms to avoid repeated calculation
+  // calculate some values to be used to obtain the jacobian matrix
   float c1 = px*px+py*py;
   float c2 = sqrt(c1);
   float c3 = (c1*c2);
 
   // check division by zero
-  if (fabs(c1) < 0.0001) {
+  if (fabs(c1) < Tolerance) {
     std::cout << "CalculateJacobian () - Error - Division by Zero" << std::endl;
     return Hj;
   }
 
-  // compute the Jacobian matrix
+  // Jacobian matrix
   Hj << (px/c2), (py/c2), 0, 0,
       -(py/c1), (px/c1), 0, 0,
       py*(vx*py - vy*px)/c3, px*(px*vy - py*vx)/c3, px/c2, py/c2;
 
   return Hj;
-}
-
-Eigen::VectorXd Calculate_h(const Eigen::VectorXd& x_state)
-{
-  VectorXd h(3);
-  h << 0,0,0;
-
-  float px = x_state(0);
-  float py = x_state(1);
-  float vx = x_state(2);
-  float vy = x_state(3);
-
-  float rho = 0.0;
-  float phi = 0.0;
-  float rho_dot = 0.0;
-
-  rho = sqrt(px*px+py*py);
-  // Returns the principal value of the arc tangent of y/x, expressed in radians
-  phi = atan2(py, px);
 }

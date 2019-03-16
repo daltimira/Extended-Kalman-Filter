@@ -12,6 +12,7 @@ KalmanFilter::~KalmanFilter() {}
 
 void KalmanFilter::Init(VectorXd &x_in, MatrixXd &P_in, MatrixXd &F_in,
                         MatrixXd &H_in, MatrixXd &R_in, MatrixXd &Q_in) {
+  // Initialize the variables that are going to be used for the Predict and Update steps
   x_ = x_in;
   P_ = P_in;
   F_ = F_in;
@@ -21,7 +22,6 @@ void KalmanFilter::Init(VectorXd &x_in, MatrixXd &P_in, MatrixXd &F_in,
 }
 
 void KalmanFilter::Predict() {
-
 	x_ = F_ * x_;
 	MatrixXd Ft = F_.transpose();
 	P_ = F_ * P_ * Ft + Q_;
@@ -45,31 +45,39 @@ void KalmanFilter::Update(const VectorXd &z) {
 
 
 void KalmanFilter::UpdateEKF(const VectorXd &z) {
-	// Got to use the h(x) function instead of H_
-	// One other important point when calculating y with radar sensor data : the second value in the polar coordinate vector is the angle phi.
-	// You'll need to make sure to normalize phi in the y vector so that its angle is between −pi and pi; in other words, add or subtract 2pi 
-	// from phi until it is between −pi and pi.
+	// This is the Extended Kalman filter update
+	// The main difference is that we use the Hj (jacobian matrix) instead of H, and when
+	// calculating the y, instead of using y=z-Hx, we are going to use the y=z-h(x)
 
+  	// First we calculate the polar coordinates from the cartesian coordinates
 	float rho = sqrt(x_(0)*x_(0) + x_(1)*x_(1));
 	float phi = atan2(x_(1), x_(0));
 	float rho_dot;
-	if (fabs(rho) < 0.0001) {
-		rho_dot = 0;
+  	double Tolerance = 0.0001; // This is a tolerance that is used to check if a number is enough close to zero to be considered as zero
+
+  	// Since rho_dot has a division, we need to check that the dividend is different than zero
+	if (fabs(rho) < Tolerance) {
+		rho_dot = 0; // Since we cannot divide it by zero, we assign rho_dot to the zero
 	} else {
 		rho_dot = (x_(0)*x_(2) + x_(1)*x_(3))/rho;
 	}
 	
-	VectorXd z_pred(3);
+	VectorXd z_pred(3); // Here the z_pred, instead of being Hx, we have the h(x), which consists with the vector (rho, phi, and rho_dot)
 	z_pred << rho, phi, rho_dot;
 	VectorXd y = z - z_pred;
 
-	// Normalizing phi
-	if(y(1) > M_PI){
-		y(1) = 2*M_PI-y(1);
-	} 
-	if (y(1) < -M_PI) {
+	// It is important that when calculating the y with radar sensor data, the second value (angle phi) should be normalized. That is, then angle should be 
+  	// between [-pi, pi]. To achieve this, we add or subtract 2pi from phi until we are in the correct range.
+
+  	while (y(1) < -M_PI) {
 		y(1) = 2*M_PI+y(1);	
 	}
+
+	while(y(1) > M_PI){
+		y(1) = 2*M_PI-y(1);
+	} 
+	
+  	// The rest is just as the regular kalman filter
 	MatrixXd Ht = H_.transpose();
 	MatrixXd S = H_ * P_ * Ht + R_;
 	MatrixXd Si = S.inverse();

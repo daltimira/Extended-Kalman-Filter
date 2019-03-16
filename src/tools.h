@@ -26,12 +26,6 @@ class Tools {
    * A helper method to calculate Jacobians.
    */
   Eigen::MatrixXd CalculateJacobian(const Eigen::VectorXd& x_state);
-
-    /**
-   * A helper method to calculate h for the measurement update of the radar.
-   */
-  Eigen::VectorXd Calculate_h(const Eigen::VectorXd& x_state);
-
 };
 
 #endif  // TOOLS_H_
